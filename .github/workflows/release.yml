@@ -12,10 +12,49 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout releases branch (binaries)
+      - name: Checkout source
         uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          ref: releases
+          go-version-file: 'backend/go.mod'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Copy frontend dist for embed
+        run: |
+          rm -rf backend/frontend-dist
+          cp -r frontend/dist backend/frontend-dist
+
+      - name: Build Windows x64
+        run: |
+          cd backend
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../dist/dbhub-web.exe .
+
+      - name: Build Linux x64
+        run: |
+          cd backend
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../dist/dbhub-web .
+
+      - name: Build macOS Intel
+        run: |
+          cd backend
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../dist/dbhub-web-darwin-amd64 .
+
+      - name: Build macOS Apple Silicon
+        run: |
+          cd backend
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../dist/dbhub-web-darwin-arm64 .
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
@@ -36,10 +75,10 @@ jobs:
             ### 下载
             选择对应操作系统的文件下载即可，无需安装任何依赖。
           files: |
-            dbhub-web.exe
-            dbhub-web
-            dbhub-web-darwin-amd64
-            dbhub-web-darwin-arm64
+            dist/dbhub-web.exe
+            dist/dbhub-web
+            dist/dbhub-web-darwin-amd64
+            dist/dbhub-web-darwin-arm64
           draft: false
           prerelease: false
           generate_release_notes: false
