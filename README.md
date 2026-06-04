@@ -13,12 +13,14 @@
 
 ## 下载
 
+> 📦 **最新版本**: [v1.0.0](https://github.com/kubectl-get-pod/dbhub-web/releases/tag/v1.0.0)
+
 | 平台 | 下载 |
 |------|------|
-| Windows x64 | [dbhub-web.exe](https://github.com/kubectl-get-pod/dbhub-web/blob/releases/dbhub-web.exe?raw=true) |
-| Linux x64 | [dbhub-web](https://github.com/kubectl-get-pod/dbhub-web/blob/releases/dbhub-web?raw=true) |
-| macOS Intel | [dbhub-web-darwin-amd64](https://github.com/kubectl-get-pod/dbhub-web/blob/releases/dbhub-web-darwin-amd64?raw=true) |
-| macOS Apple Silicon | [dbhub-web-darwin-arm64](https://github.com/kubectl-get-pod/dbhub-web/blob/releases/dbhub-web-darwin-arm64?raw=true) |
+| Windows x64 | [dbhub-web.exe](https://github.com/kubectl-get-pod/dbhub-web/releases/download/v1.0.0/dbhub-web.exe) |
+| Linux x64 | [dbhub-web](https://github.com/kubectl-get-pod/dbhub-web/releases/download/v1.0.0/dbhub-web) |
+| macOS Intel | [dbhub-web-darwin-amd64](https://github.com/kubectl-get-pod/dbhub-web/releases/download/v1.0.0/dbhub-web-darwin-amd64) |
+| macOS Apple Silicon | [dbhub-web-darwin-arm64](https://github.com/kubectl-get-pod/dbhub-web/releases/download/v1.0.0/dbhub-web-darwin-arm64) |
 
 ## 快速开始
 
