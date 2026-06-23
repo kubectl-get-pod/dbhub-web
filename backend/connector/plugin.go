@@ -71,6 +71,7 @@ type QueryResult struct {
 	Rows     [][]interface{} `json:"rows"`
 	RowCount int             `json:"rowCount"`
 	Duration string          `json:"duration"`
+	Comments map[string]string `json:"comments,omitempty"` // 列名 → 注释
 }
 
 // ========== 自动补全 ==========

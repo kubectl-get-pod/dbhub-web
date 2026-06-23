@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"flag"
 	"io/fs"
 	"log"
 	"net/http"
@@ -20,6 +21,10 @@ import (
 var frontendAssets embed.FS
 
 func main() {
+	// 命令行参数
+	portFlag := flag.String("port", "", "监听端口（默认 8080，也可通过 PORT 环境变量设置）")
+	flag.Parse()
+
 	// 确保数据目录存在
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -38,7 +43,11 @@ func main() {
 	// 前端静态文件 + SPA fallback
 	serveFrontend(mux)
 
-	port := os.Getenv("PORT")
+	// 端口优先级：命令行 > 环境变量 > 默认
+	port := *portFlag
+	if port == "" {
+		port = os.Getenv("PORT")
+	}
 	if port == "" {
 		port = "8080"
 	}

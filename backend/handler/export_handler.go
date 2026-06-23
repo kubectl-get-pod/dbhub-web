@@ -61,6 +61,8 @@ func ExportExcel(w http.ResponseWriter, r *http.Request) {
 		ConnID   string `json:"connId"`
 		SQL      string `json:"sql"`
 		Filename string `json:"filename"`
+		Database string `json:"database,omitempty"`
+		Table    string `json:"table,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, "请求格式错误", err, http.StatusBadRequest)
@@ -71,10 +73,35 @@ func ExportExcel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, "连接未打开", err, http.StatusBadRequest)
 		return
 	}
+
+	// 设置数据库上下文
+	if req.Database != "" {
+		plugin.SetDatabase(db, req.Database)
+	}
+
 	result, err := plugin.Query(db, req.SQL, 0, 0)
 	if err != nil {
 		writeError(w, "查询失败", err, http.StatusInternalServerError)
 		return
+	}
+
+	// 如果 table 为空，尝试从 SQL 中提取表名
+	table := req.Table
+	if table == "" && req.Database != "" {
+		table = extractTableFromSQL(req.SQL)
+	}
+
+	// 获取列注释
+	commentMap := map[string]string{}
+	if req.Database != "" && table != "" {
+		cols, err := plugin.GetColumns(db, req.Database, table)
+		if err == nil {
+			for _, c := range cols {
+				if c.Comment != "" {
+					commentMap[c.Name] = c.Comment
+				}
+			}
+		}
 	}
 
 	f := excelize.NewFile()
@@ -86,16 +113,43 @@ func ExportExcel(w http.ResponseWriter, r *http.Request) {
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"4472C4"}, Pattern: 1},
 	})
 
+	// Comment row style
+	hasComments := false
+	for _, col := range result.Columns {
+		if commentMap[col] != "" {
+			hasComments = true
+			break
+		}
+	}
+	var commentStyle int
+	dataStartRow := 2
+	if hasComments {
+		commentStyle, _ = f.NewStyle(&excelize.Style{
+			Font: &excelize.Font{Italic: true, Size: 10, Color: "808080"},
+		})
+		dataStartRow = 3
+	}
+
+	// Write header row
 	for i, col := range result.Columns {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, col)
 	}
 	f.SetRowStyle(sheet, 1, 1, headerStyle)
 
+	// Write comment row (if available)
+	if hasComments {
+		for i, col := range result.Columns {
+			cell, _ := excelize.CoordinatesToCellName(i+1, 2)
+			f.SetCellValue(sheet, cell, commentMap[col])
+		}
+		f.SetRowStyle(sheet, 2, 2, commentStyle)
+	}
+
 	// Data rows
 	for rIdx, row := range result.Rows {
 		for cIdx, val := range row {
-			cell, _ := excelize.CoordinatesToCellName(cIdx+1, rIdx+2)
+			cell, _ := excelize.CoordinatesToCellName(cIdx+1, rIdx+dataStartRow)
 			f.SetCellValue(sheet, cell, val)
 		}
 	}
@@ -377,4 +431,41 @@ func GetVersion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"version": version})
+}
+
+// extractTableFromSQL 从 SQL 中提取 FROM 后的第一个表名
+func extractTableFromSQL(sql string) string {
+	s := toUpper(strings.TrimSpace(sql))
+	idx := strings.Index(s, "FROM ")
+	if idx < 0 {
+		return ""
+	}
+	rest := strings.TrimSpace(sql[idx+5:])
+	// 去掉反引号、方括号、双引号
+	rest = strings.TrimLeft(rest, "`\"[")
+	end := 0
+	for end < len(rest) {
+		c := rest[end]
+		if c == ' ' || c == '\t' || c == '\n' || c == ',' || c == ';' || c == ')' ||
+			c == '`' || c == '"' || c == ']' {
+			break
+		}
+		// 检测 JOIN/WHERE 等关键字（转为大写比较）
+		remaining := strings.ToUpper(rest[end:])
+		if strings.HasPrefix(remaining, "JOIN") || strings.HasPrefix(remaining, "WHERE") ||
+			strings.HasPrefix(remaining, "ORDER") || strings.HasPrefix(remaining, "GROUP") ||
+			strings.HasPrefix(remaining, "LIMIT") || strings.HasPrefix(remaining, "HAVING") ||
+			strings.HasPrefix(remaining, "UNION") || strings.HasPrefix(remaining, "INNER") ||
+			strings.HasPrefix(remaining, "LEFT") || strings.HasPrefix(remaining, "RIGHT") ||
+			strings.HasPrefix(remaining, "CROSS") || strings.HasPrefix(remaining, "ON ") {
+			break
+		}
+		end++
+	}
+	table := rest[:end]
+	// 处理 schema.table 格式（取 table 部分）
+	if dot := strings.Index(table, "."); dot >= 0 {
+		table = table[dot+1:]
+	}
+	return strings.Trim(table, "`\"[]")
 }

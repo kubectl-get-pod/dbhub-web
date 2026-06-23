@@ -76,6 +76,7 @@ export interface QueryResult {
   rows: unknown[][]
   rowCount: number
   duration: string
+  comments?: Record<string, string>
 }
 
 export interface QueryHistoryItem {
@@ -149,6 +150,8 @@ export interface ExportRequest {
   connId: string
   sql: string
   filename: string
+  database?: string
+  table?: string
 }
 
 export interface ImportRequest {

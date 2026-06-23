@@ -42,8 +42,8 @@ export function deleteRow(connId: string, database: string, table: string, pk: R
 }
 
 // 查询
-export function executeQuery(connId: string, sql: string, limit = 0, offset = 0, database?: string) {
-  return POST<QueryResult>('/query', { connId, sql, limit, offset, database: database || '' })
+export function executeQuery(connId: string, sql: string, limit = 0, offset = 0, database?: string, table?: string) {
+  return POST<QueryResult>('/query', { connId, sql, limit, offset, database: database || '', table: table || '' })
 }
 
 // 历史
@@ -79,12 +79,12 @@ export function revokePrivilege(connId: string, user: string, database: string, 
 }
 
 // 导出
-export function exportCSV(connId: string, sql: string, filename: string) {
-  return fetch('/api/export/csv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connId, sql, filename }) })
+export function exportCSV(connId: string, sql: string, filename: string, database?: string, table?: string) {
+  return fetch('/api/export/csv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connId, sql, filename, database, table }) })
     .then(r => r.blob()).then(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = filename; a.click() })
 }
-export function exportExcel(connId: string, sql: string, filename: string) {
-  return fetch('/api/export/excel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connId, sql, filename }) })
+export function exportExcel(connId: string, sql: string, filename: string, database?: string, table?: string) {
+  return fetch('/api/export/excel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connId, sql, filename, database, table }) })
     .then(r => r.blob()).then(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = filename; a.click() })
 }
 

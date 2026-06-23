@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Trash2, Check, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2, Check, X, FileText, ChevronDown } from 'lucide-react'
 import { useUIStore } from '../../stores/uiStore'
 import * as api from '../../api/database'
 import type { Tab, QueryResult, Column } from '../../types'
@@ -21,6 +21,7 @@ export function DataGrid({ tab }: Props) {
   const [editingValues, setEditingValues] = useState<Record<string, string>>({})
   const [showInsert, setShowInsert] = useState(false)
   const [insertValues, setInsertValues] = useState<Record<string, string>>({})
+  const [exportOpen, setExportOpen] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
 
   const totalPages = Math.ceil(rowCount / PAGE_SIZE)
@@ -118,6 +119,26 @@ export function DataGrid({ tab }: Props) {
     }
   }
 
+  const handleExportCSV = async () => {
+    if (!tab.connId || !tab.database || !tab.table) return
+    try {
+      await api.exportCSV(tab.connId, `SELECT * FROM ${tab.table}`, tab.table + '.csv', tab.database, tab.table)
+      addToast('CSV 导出成功', 'success')
+    } catch {
+      addToast('导出失败', 'error')
+    }
+  }
+
+  const handleExportExcel = async () => {
+    if (!tab.connId || !tab.database || !tab.table) return
+    try {
+      await api.exportExcel(tab.connId, `SELECT * FROM ${tab.table}`, tab.table + '.xlsx', tab.database, tab.table)
+      addToast('Excel 导出成功', 'success')
+    } catch {
+      addToast('导出失败', 'error')
+    }
+  }
+
   const handleCopyCell = (val: unknown) => {
     navigator.clipboard.writeText(String(val ?? ''))
     addToast('已复制', 'info')
@@ -146,6 +167,28 @@ export function DataGrid({ tab }: Props) {
           style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
           <Plus size={12} /> 插入
         </button>
+        <div className="relative">
+          <button onClick={() => setExportOpen(!exportOpen)}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:opacity-80"
+            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+            <FileText size={12} /> 导出 <ChevronDown size={10} />
+          </button>
+          {exportOpen && (
+            <div className="absolute top-full left-0 mt-1 rounded shadow-lg z-50 py-1 min-w-[120px]"
+              style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+              <button onClick={() => { handleExportCSV(); setExportOpen(false) }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:opacity-80"
+                style={{ color: 'var(--text-primary)' }}>
+                📄 CSV 导出
+              </button>
+              <button onClick={() => { handleExportExcel(); setExportOpen(false) }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:opacity-80"
+                style={{ color: 'var(--text-primary)' }}>
+                📊 Excel 导出 (.xlsx)
+              </button>
+            </div>
+          )}
+        </div>
         <span className="ml-auto" style={{ color: 'var(--text-muted)' }}>
           共 {rowCount.toLocaleString()} 行
         </span>
@@ -155,15 +198,27 @@ export function DataGrid({ tab }: Props) {
       <div className="flex-1 overflow-auto">
         <table className="w-full text-xs border-collapse">
           <thead>
-            <tr style={{ backgroundColor: 'var(--bg-tertiary)', position: 'sticky', top: 0 }}>
+            <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
               <th className="px-2 py-1.5 text-left w-10">#</th>
-              {data?.columns.map((col) => (
-                <th key={col} className="px-2 py-1.5 text-left whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
-                  {col}
+              {columns.map((col) => (
+                <th key={col.name} className="px-2 py-1.5 text-left whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+                  {col.name}
                 </th>
               ))}
               <th className="px-2 py-1.5 w-16">操作</th>
             </tr>
+            {columns.some(c => c.comment) && (
+              <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                <th className="px-2 py-0.5 text-left w-10"></th>
+                {columns.map((col) => (
+                  <th key={col.name} className="px-2 py-0.5 text-left whitespace-nowrap font-normal italic"
+                    style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+                    {col.comment || ''}
+                  </th>
+                ))}
+                <th className="px-2 py-0.5 w-16"></th>
+              </tr>
+            )}
           </thead>
           <tbody>
             {data?.rows.map((row, ri) => (

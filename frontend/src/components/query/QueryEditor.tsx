@@ -98,7 +98,7 @@ export function QueryEditor({ tab }: Props) {
     if (!tab.connId || !sqlText.trim()) return
     setRunning(tab.id, true)
     try {
-      const result = await api.executeQuery(tab.connId, sqlText, 0, 0, tab.database)
+      const result = await api.executeQuery(tab.connId, sqlText, 0, 0, tab.database, tab.table)
       setResult(tab.id, result)
       addToast(`执行成功, ${result.rowCount} 行, ${result.duration}`, 'success')
     } catch (e) {
@@ -140,7 +140,7 @@ export function QueryEditor({ tab }: Props) {
     const sql = viewRef.current.state.doc.toString().trim()
     if (!sql) return
     try {
-      await api.exportCSV(tab.connId, sql, 'query_result.csv')
+      await api.exportCSV(tab.connId, sql, 'query_result.csv', tab.database, tab.table)
       addToast('CSV 导出成功', 'success')
     } catch {
       addToast('导出失败', 'error')
@@ -152,7 +152,7 @@ export function QueryEditor({ tab }: Props) {
     const sql = viewRef.current.state.doc.toString().trim()
     if (!sql) return
     try {
-      await api.exportExcel(tab.connId, sql, 'query_result.xlsx')
+      await api.exportExcel(tab.connId, sql, 'query_result.xlsx', tab.database, tab.table)
       addToast('Excel 导出成功', 'success')
     } catch {
       addToast('导出失败', 'error')
@@ -239,11 +239,20 @@ export function QueryEditor({ tab }: Props) {
           </div>
           <table className="w-full text-xs border-collapse">
             <thead>
-              <tr style={{ backgroundColor: 'var(--bg-tertiary)', position: 'sticky', top: 0 }}>
+              <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                 {result.columns.map((col) => (
                   <th key={col} className="px-2 py-1 text-left" style={{ color: 'var(--text-secondary)' }}>{col}</th>
                 ))}
               </tr>
+              {result.comments && Object.values(result.comments).some(c => c) && (
+                <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  {result.columns.map((col) => (
+                    <th key={col} className="px-2 py-0.5 text-left font-normal italic" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+                      {result.comments![col] || ''}
+                    </th>
+                  ))}
+                </tr>
+              )}
             </thead>
             <tbody>
               {result.rows.slice(0, 200).map((row, ri) => (

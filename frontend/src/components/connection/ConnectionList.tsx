@@ -111,7 +111,7 @@ export function ConnectionList() {
         <div className="px-2 py-4 text-xs text-center" style={{ color: 'var(--text-muted)' }}>
           暂无连接，点击 + 新建
         </div>
-        <ConnectionForm open={formOpen} onClose={handleFormClose} editConnection={editConn} />
+        <ConnectionForm key={editConn?.id || 'new'} open={formOpen} onClose={handleFormClose} editConnection={editConn} />
       </>
     )
   }
@@ -185,7 +185,7 @@ export function ConnectionList() {
           </div>
         )
       })}
-      <ConnectionForm open={formOpen} onClose={handleFormClose} editConnection={editConn} />
+      <ConnectionForm key={editConn?.id || 'new'} open={formOpen} onClose={handleFormClose} editConnection={editConn} />
     </>
   )
 }

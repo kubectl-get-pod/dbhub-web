@@ -60,6 +60,8 @@ chmod +x dbhub-web
 
 访问 **http://localhost:8080**，开始管理你的数据库。
 
+> 指定端口：`./dbhub-web.exe -port 3000`，也可通过 `PORT` 环境变量设置。
+
 ---
 
 ## 功能一览

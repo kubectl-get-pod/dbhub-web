@@ -15,6 +15,7 @@ func ExecuteQuery(w http.ResponseWriter, r *http.Request) {
 		Limit    int    `json:"limit"`
 		Offset   int    `json:"offset"`
 		Database string `json:"database,omitempty"` // 可选：设置当前数据库上下文
+		Table    string `json:"table,omitempty"`    // 可选：用于获取列注释
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, "请求格式错误", err, http.StatusBadRequest)
@@ -49,6 +50,28 @@ func ExecuteQuery(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result.Duration = time.Since(start).String()
+
+		// 获取列注释
+		if req.Database != "" {
+			table := req.Table
+			if table == "" {
+				table = extractTableFromSQL(req.SQL)
+			}
+			if table != "" {
+				if cols, err := plugin.GetColumns(db, req.Database, table); err == nil {
+					comments := make(map[string]string)
+					for _, c := range cols {
+						if c.Comment != "" {
+							comments[c.Name] = c.Comment
+						}
+					}
+					if len(comments) > 0 {
+						result.Comments = comments
+					}
+				}
+			}
+		}
+
 		// 保存历史
 		saveHistory(req.ConnID, cfg.Name, req.SQL, result.Duration)
 		writeJSON(w, http.StatusOK, result)

@@ -192,6 +192,20 @@ func ListData(w http.ResponseWriter, r *http.Request) {
 		writeError(w, "query data failed", err, http.StatusInternalServerError)
 		return
 	}
+
+	// 获取列注释
+	if cols, err := plugin.GetColumns(db, database, table); err == nil {
+		comments := make(map[string]string)
+		for _, c := range cols {
+			if c.Comment != "" {
+				comments[c.Name] = c.Comment
+			}
+		}
+		if len(comments) > 0 {
+			result.Comments = comments
+		}
+	}
+
 	writeJSON(w, http.StatusOK, result)
 }
 
